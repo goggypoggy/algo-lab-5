@@ -106,20 +106,20 @@ private:
 int main(int, char**) {
     Tree tree;
 
-    tree.add(3);
-    tree.add(2);
-    tree.add(6);
-    tree.add(4);
-    tree.add(4);
+    char c;
+    while (std::cin >> c) {
+        if (c == '+') {
+            int x;
+            std::cin >> x;
 
-    tree.output();
+            tree.add(x);
+        } else {
+            int k;
+            std::cin >> k;
 
-    std::cout << "\n";
-    std::cout << tree.root->parent << "\n";
-    std::cout << tree.root << " == " << tree.root->more->parent << "\n";
-    std::cout << tree.root->more << " == " << tree.root->more->less->parent << "\n";
-
-    std::cout << "result of find(): " << tree.find(2) << "\n";
+            std::cout << tree.find(k - 1) << "\n";
+        }
+    }
 
     return 0;
 }
