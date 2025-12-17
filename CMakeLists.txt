@@ -4,3 +4,4 @@ project(lab)
 
 add_executable(a a.cpp)
 add_executable(b b.cpp)
+add_executable(c c.cpp)
