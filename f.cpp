@@ -60,30 +60,6 @@ struct Rect {
             std::cout << '\n';
         }
     }
-
-    /*
-    P1 -----
-    |      |
-    ----- P2
-    */
-    Rect getSubrect(
-        int x1, int y1,
-        int x2, int y2) {
-        Rect subrect;
-
-        int new_w = x2 - x1 + 1;
-        int new_h = y2 - y1 + 1;
-
-        subrect.buf = new char*[new_h];
-        subrect.h = new_h;
-        subrect.w = new_w;
-
-        for (int i = 0; i < new_h; ++i) {
-            subrect.buf[i] = buf[i + y1] + x1;
-        }
-
-        return subrect;
-    }
 };
 
 struct Node {
@@ -142,7 +118,7 @@ struct Tree {
 
     void drawRect() {
         Rect result(root->vert, root->hor);
-        drawRectRec(root, result);
+        drawRectRec(root, result, 0, 0, result.w - 1, result.h - 1);
         result.cleanUp();
         result.output();
         result.free();
@@ -177,24 +153,29 @@ private:
         ptr->vert++;
     }
 
-    void drawRectRec(Node* ptr, Rect& rect) {
+    void drawRectRec(
+        Node* ptr, Rect& rect,
+        int x1, int y1,
+        int x2, int y2) {
         std::string num = std::to_string(ptr->data);
 
         int num_start = ptr->less == nullptr ? 0 : ptr->less->hor;
 
         for (int i = 0; i < num.size(); ++i) {
-            rect.draw(num_start + i, 0, num[i]);
+            rect.draw(x1 + num_start + i, y1, num[i]);
         }
 
         if (ptr->less != nullptr) {
             // std::cout << 0 << " " << 1 << " " << ptr->less->hor - 1 << " " << rect.h - 1 << "\n";
-            Rect subrect = rect.getSubrect(0, 1, ptr->less->hor - 1, rect.h - 1);
-            drawRectRec(ptr->less, subrect);
+            drawRectRec(ptr->less, rect,
+                x1, y1 + 1, 
+                x1 + ptr->less->hor - 1, y2 - 1);
         }
         if (ptr->more != nullptr) {
             // std::cout << num_start + num.size() << " " << 1 << " " << rect.w - 1 << " " << rect.h - 1 << "\n";
-            Rect subrect = rect.getSubrect(num_start + num.size(), 1, rect.w - 1, rect.h - 1);
-            drawRectRec(ptr->more, subrect);
+            drawRectRec(ptr->more, rect,
+                x1 + num_start + num.size(), y1 + 1,
+                x2 - 1, y2 - 1);
         }
     }
 };
