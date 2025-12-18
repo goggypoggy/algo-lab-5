@@ -5,7 +5,8 @@ struct Node {
     Node* more;
     Node* parent;
     int data;
-    int size = 1;
+    int height = 1;
+    int deltaH = 0;
 
     Node(int x, Node* prnt = nullptr, Node* left = nullptr, Node* right = nullptr)
     : data(x), less(left), more(right), parent(prnt)
@@ -16,27 +17,30 @@ struct Node {
         // delete more;
     }
 
-    int deltaH() {
-        return (less == nullptr ? 0 : less->size) - (more== nullptr ? 0 : more->size);
-    }
+    void updateHeight() {
+        if (less == nullptr && more == nullptr) {
+            height = 1;
+            deltaH = 0;
+            return;
+        }
 
-    void updateSize() {
-        int left = (less == nullptr ? 0 : less->size);
-        int right = (more== nullptr ? 0 : more->size);
+        int left = 0;
+        if (less != nullptr) {
+            left = less->height;
+        }
+        
+        int right = 0;
+        if (more != nullptr) {
+            right = more->height;
+        }
 
-        size = std::max(left, right) + 1;
+        height = std::max(left, right) + 1;
+        deltaH = left - right;
     }
 
     void isolate() {
         less = nullptr;
         more = nullptr;
-    }
-
-    void backtrack() {
-        size--;
-        if (parent != nullptr) {
-            parent->backtrack();
-        }
     }
 
     void output_clean() {
@@ -56,10 +60,17 @@ struct Node {
             less->output_debug();
             std::cout << " ";
         }
-        std::cout << "[" << data << " (" << size << ") ^(" << (parent == nullptr ? 0 : parent->data) << ")]";
+        std::cout << "[" << data << " (" << height << ":" << deltaH << ") ^(" << (parent == nullptr ? 0 : parent->data) << ")]";
         if (more != nullptr) {
             std::cout << " ";
             more->output_debug();
+        }
+    }
+
+    void backtrack() {
+        updateHeight();
+        if (parent != nullptr) {
+            parent->backtrack();
         }
     }
 };
@@ -68,32 +79,7 @@ struct Tree {
     Node* root = nullptr;
 
     void insert(int x) {
-        if (root == nullptr) {
-            add_first(x);
-            return;
-        }
-
-        Node** ptr = &root;
-        Node* parent = nullptr;
-
-        while (*ptr != nullptr) {
-            (*ptr)->size++;
-            if ((*ptr)->data == x) {
-                (*ptr)->backtrack();
-                return;
-            }
-
-            if (x < (*ptr)->data) {
-                parent = *ptr;
-                ptr = &((*ptr)->less);
-            } else {
-                parent = *ptr;
-                ptr = &((*ptr)->more);
-            }
-        }
-
-        *ptr = new Node(x, parent);
-        balance(ptr);
+        root = insert_(x, root, nullptr);
     }
 
     bool search(int x) {
@@ -125,84 +111,57 @@ private:
         root = new Node(x);
     }
 
-    void small_left(Node** a) {
-        Node* b = (*a)->more;
-        std::cout << (*a)->parent << " " << (*a) << '\n';
-        Node* prev_parent = (*a)->parent;
-        // (*a)->more->parent = (*a)->parent;
-        (*a)->output_debug();
-
-        Node* c = b->less;
-        
-        (*a)->more = c;
-        if (c != nullptr) {
-            c->parent = (*a);
+    Node* insert_(int x, Node* ptr, Node* predecessor) {
+        if (ptr == nullptr) {
+            return new Node(x, predecessor);
         }
-        (*a)->updateSize();
-        
-
-        b->less = (*a);
-        (*a)->parent = b;
-        b->updateSize();
-
-        b->parent = prev_parent;
-        b->output_debug();
-        *a = b;
-        
+        if (x < ptr->data) {
+            ptr->less = insert_(x, ptr->less, ptr);
+        } else {
+            ptr->more = insert_(x, ptr->more, ptr);
+        }
+        ptr->updateHeight();
+        return balance(ptr);
     }
 
-    void balance(Node** ptr) {
-        std::cout << "balancing:\n";
-        (*ptr)->output_debug();
-        std::cout << "\n";
+    Node* small_left(Node* q) {
+        Node* p = q->more;
 
-        if ((*ptr)->deltaH() == 2) {
-            Node* a = (*ptr)->less;
+        q->more = p->less;
+        std::cout << "hi";
+        q->more->parent = q;
+        std::cout << "hi";
 
-            if (a->deltaH() >= 0) {
-                // малый правый
+        p->parent = q->parent;
+        p->less = q;
+        q->parent = p;
+
+        q->updateHeight();
+        p->updateHeight();
+
+        return p;
+    }
+
+    Node* balance(Node* ptr) {
+        if (ptr->deltaH == -2) {
+            if (ptr->more->deltaH <= 0) {
+                // small left
+                std::cout << "small left at " << ptr->data << "\n";
+                return small_left(ptr);
             } else {
-                // большой правый
+                // big left
+                std::cout << "big left at " << ptr->data << "\n";
             }
-        } else if ((*ptr)->deltaH() == -2) {
-            Node* b = (*ptr)->more;
-
-            if (b->deltaH() <= 0) {
-                // малый левый
-                std::cout << "small left on " << (*ptr)->data << "\n";
-                small_left(ptr);
-                //Node* b = (*ptr)->more;
-                // std::cout << (*ptr)->more->parent->data << '\n';
-                // // b->parent = (*ptr)->parent;
-                // (*ptr)->more->parent = (*ptr)->parent;
-                // (*ptr)->output_debug();
-
-                // Node* c = b->less;
-                
-                // (*ptr)->more = c;
-                // if (c != nullptr) {
-                //     c->parent = (*ptr);
-                // }
-                // (*ptr)->updateSize();
-                
-
-                // b->less = (*ptr);
-                // (*ptr)->parent = b;
-                // b->updateSize();
-
-                // *ptr = b;
+        } else if (ptr->deltaH == 2) {
+            if (ptr->less->deltaH >= 0) {
+                // small right
+                std::cout << "small right at " << ptr->data << "\n";
             } else {
-                // большой левый
+                // big right
+                std::cout << "big right at " << ptr->data << "\n";
             }
         }
-
-        std::cout << "result:\n";
-        (*ptr)->output_debug();
-        std::cout << "\n";
-
-        if ((*ptr)->parent != nullptr) {
-            balance(&((*ptr)->parent));
-        }
+        return ptr;
     }
 };
 
