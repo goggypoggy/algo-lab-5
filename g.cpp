@@ -3,13 +3,12 @@
 struct Node {
     Node* less;
     Node* more;
-    Node* parent;
     int data;
     int height = 1;
     int deltaH = 0;
 
-    Node(int x, Node* prnt = nullptr, Node* left = nullptr, Node* right = nullptr)
-    : data(x), less(left), more(right), parent(prnt)
+    Node(int x, Node* left = nullptr, Node* right = nullptr)
+    : data(x), less(left), more(right)
     {}
 
     ~Node() {
@@ -60,17 +59,10 @@ struct Node {
             less->output_debug();
             std::cout << " ";
         }
-        std::cout << "[" << data << " (" << height << ":" << deltaH << ") ^(" << (parent == nullptr ? 0 : parent->data) << ")]";
+        std::cout << "[" << data << " (" << height << ":" << deltaH << ")]";
         if (more != nullptr) {
             std::cout << " ";
             more->output_debug();
-        }
-    }
-
-    void backtrack() {
-        updateHeight();
-        if (parent != nullptr) {
-            parent->backtrack();
         }
     }
 };
@@ -79,7 +71,7 @@ struct Tree {
     Node* root = nullptr;
 
     void insert(int x) {
-        root = insert_(x, root, nullptr);
+        root = insert_(x, root);
     }
 
     bool search(int x) {
@@ -111,14 +103,14 @@ private:
         root = new Node(x);
     }
 
-    Node* insert_(int x, Node* ptr, Node* predecessor) {
+    Node* insert_(int x, Node* ptr) {
         if (ptr == nullptr) {
-            return new Node(x, predecessor);
+            return new Node(x);
         }
         if (x < ptr->data) {
-            ptr->less = insert_(x, ptr->less, ptr);
+            ptr->less = insert_(x, ptr->less);
         } else {
-            ptr->more = insert_(x, ptr->more, ptr);
+            ptr->more = insert_(x, ptr->more);
         }
         ptr->updateHeight();
         return balance(ptr);
@@ -128,15 +120,57 @@ private:
         Node* p = q->more;
 
         q->more = p->less;
-        std::cout << "hi";
-        q->more->parent = q;
-        std::cout << "hi";
 
-        p->parent = q->parent;
         p->less = q;
-        q->parent = p;
 
         q->updateHeight();
+        p->updateHeight();
+
+        return p;
+    }
+
+    Node* small_right(Node* q) {
+        Node* p = q->less;
+
+        q->less = p->more;
+
+        p->more = q;
+
+        q->updateHeight();
+        p->updateHeight();
+
+        return p;
+    }
+
+    Node* big_left(Node* r) {
+        Node* q = r->more;
+        Node* p = q->less;
+
+        r->more = p->less;
+        q->less = p->more;
+
+        p->less = r;
+        p->more = q;
+
+        r->updateHeight();
+        q->updateHeight();
+        p->updateHeight();
+
+        return p;
+    }
+
+    Node* big_right(Node* r) {
+        Node* q = r->less;
+        Node* p = q->more;
+
+        q->more = p->less;
+        r->less = p->more;
+
+        p->less = q;
+        p->more = r;
+
+        q->updateHeight();
+        r->updateHeight();
         p->updateHeight();
 
         return p;
@@ -145,20 +179,15 @@ private:
     Node* balance(Node* ptr) {
         if (ptr->deltaH == -2) {
             if (ptr->more->deltaH <= 0) {
-                // small left
-                std::cout << "small left at " << ptr->data << "\n";
                 return small_left(ptr);
             } else {
-                // big left
-                std::cout << "big left at " << ptr->data << "\n";
+                return big_left(ptr);
             }
         } else if (ptr->deltaH == 2) {
             if (ptr->less->deltaH >= 0) {
-                // small right
-                std::cout << "small right at " << ptr->data << "\n";
+                return small_right(ptr);
             } else {
-                // big right
-                std::cout << "big right at " << ptr->data << "\n";
+                return big_right(ptr);
             }
         }
         return ptr;
