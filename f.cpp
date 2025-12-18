@@ -2,7 +2,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <string>
-#include <print>
 
 int len(int x) {
     if (x == 0) {
@@ -23,7 +22,7 @@ struct Rect {
     : h(height), w(width), buf(new char*[height]) {
         for (int i = 0; i < h; ++i) {
             buf[i] = new char[width];
-            memset(buf[i], '#', width);
+            memset(buf[i], ' ', width);
         }
     }
 
@@ -90,13 +89,13 @@ struct Rect {
 struct Node {
     Node* less;
     Node* more;
-    Node* parent;
+
     int data;
     int vert = 1;
     int hor = 1;
 
-    Node(int x, Node* prnt = nullptr, Node* left = nullptr, Node* right = nullptr)
-    : data(x), hor(len(x)), less(left), more(right), parent(prnt)
+    Node(int x, Node* left = nullptr, Node* right = nullptr)
+    : data(x), hor(len(x)), less(left), more(right)
     {}
 
     ~Node() {
@@ -113,13 +112,6 @@ struct Node {
             more->output();
         }
     }
-
-    void backtrack() {
-        
-        if (parent != nullptr) {
-            parent->backtrack();
-        }
-    }
 };
 
 struct Tree {
@@ -132,36 +124,28 @@ struct Tree {
         }
 
         Node** ptr = &root;
-        Node* parent = nullptr;
 
         while (*ptr != nullptr) {
-            int height_left = (*ptr)->less == nullptr ? 0 : (*ptr)->less->vert;
-            int height_right = (*ptr)->more == nullptr ? 0 : (*ptr)->more->vert;
-            
-            (*ptr)->hor += len(x);
-
             if (x < (*ptr)->data) {
-                if (height_left >= height_right) {
-                    (*ptr)->vert++;
-                }
-                parent = *ptr;
                 ptr = &((*ptr)->less);
             } else {
-                if (height_right >= height_left) {
-                    (*ptr)->vert++;
-                }
-                parent = *ptr;
                 ptr = &((*ptr)->more);
             }
         }
 
-        *ptr = new Node(x, parent);
+        *ptr = new Node(x);
+    }
+
+    void setUp() {
+        setUpRec(root);
     }
 
     void drawRect() {
         Rect result(root->vert, root->hor);
         drawRectRec(root, result);
+        result.cleanUp();
         result.output();
+        result.free();
     }
 
     void output() {
@@ -174,6 +158,25 @@ private:
         root = new Node(x);
     }
 
+    void setUpRec(Node* ptr) {
+        ptr->vert = 0;
+        ptr->hor = len(ptr->data);
+
+        if (ptr->less != nullptr) {
+            setUpRec(ptr->less);
+            ptr->vert = std::max(ptr->vert, ptr->less->vert);
+            ptr->hor += ptr->less->hor;
+        }
+        
+        if (ptr->more != nullptr) {
+            setUpRec(ptr->more);
+            ptr->vert = std::max(ptr->vert, ptr->more->vert);
+            ptr->hor += ptr->more->hor;
+        }
+
+        ptr->vert++;
+    }
+
     void drawRectRec(Node* ptr, Rect& rect) {
         std::string num = std::to_string(ptr->data);
 
@@ -184,12 +187,12 @@ private:
         }
 
         if (ptr->less != nullptr) {
-            std::cout << 0 << " " << 1 << " " << ptr->less->hor - 1 << " " << rect.h - 1 << "\n";
+            // std::cout << 0 << " " << 1 << " " << ptr->less->hor - 1 << " " << rect.h - 1 << "\n";
             Rect subrect = rect.getSubrect(0, 1, ptr->less->hor - 1, rect.h - 1);
             drawRectRec(ptr->less, subrect);
         }
         if (ptr->more != nullptr) {
-            std::cout << num_start + num.size() << " " << 1 << " " << rect.w - 1 << " " << rect.h - 1 << "\n";
+            // std::cout << num_start + num.size() << " " << 1 << " " << rect.w - 1 << " " << rect.h - 1 << "\n";
             Rect subrect = rect.getSubrect(num_start + num.size(), 1, rect.w - 1, rect.h - 1);
             drawRectRec(ptr->more, subrect);
         }
@@ -199,12 +202,14 @@ private:
 int main(int, char**) {
     Tree tree;
 
-    tree.add(300);
-    tree.add(2);
-    tree.add(6000);
-    tree.add(40);
+    int x;
+    while (std::cin >> x) {
+        tree.add(x);
+    }
 
-    tree.output();
+    tree.setUp();
+
+    // tree.output();
 
     tree.drawRect();
 
