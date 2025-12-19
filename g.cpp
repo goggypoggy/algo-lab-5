@@ -12,8 +12,8 @@ struct Node {
     {}
 
     ~Node() {
-        // delete less;
-        // delete more;
+        delete less;
+        delete more;
     }
 
     void updateHeight() {
@@ -91,6 +91,42 @@ struct Tree {
         return false;
     }
 
+    Node* next(int x) {
+        Node* ptr = root;
+        Node* successor = nullptr;
+
+        while (ptr != nullptr) {
+            if (x < ptr->data) {
+                successor = ptr;
+                ptr = ptr->less;
+            } else {
+                ptr = ptr->more;
+            }
+        }
+
+        return successor;
+    }
+
+    Node* prev(int x) {
+        Node* ptr = root;
+        Node* predecessor = nullptr;
+
+        while (ptr != nullptr) {
+            if (x > ptr->data) {
+                predecessor = ptr;
+                ptr = ptr->more;
+            } else {
+                ptr = ptr->less;
+            }
+        }
+
+        return predecessor;
+    }
+
+    void Delete(int x) {
+        root = delete_(x, root);
+    }
+
     void output() {
         root->output_clean();
         std::cout << "\n";
@@ -99,19 +135,71 @@ struct Tree {
     }
 
 private:
-    void add_first(int x) {
-        root = new Node(x);
-    }
-
     Node* insert_(int x, Node* ptr) {
         if (ptr == nullptr) {
             return new Node(x);
         }
         if (x < ptr->data) {
             ptr->less = insert_(x, ptr->less);
-        } else {
+        } else if (x > ptr->data) {
             ptr->more = insert_(x, ptr->more);
+        } else {
+            return ptr;
         }
+        ptr->updateHeight();
+        return balance(ptr);
+    }
+
+    Node* exclude_min(Node* ptr) {
+        if (ptr->less == nullptr) {
+            return ptr->more;
+        }
+
+        Node* R = ptr;
+        
+        Node* pre_min = ptr;
+        while (pre_min->less->less != nullptr) {
+            pre_min = pre_min->less;
+        }
+
+        Node* min = pre_min->less;
+
+        pre_min->less = min->more;
+
+        return R;
+    }
+
+    Node* delete_(int x, Node* ptr) {
+        if (ptr == nullptr) {
+            return nullptr;
+        }
+        if (x < ptr->data) {
+            ptr->less = delete_(x, ptr->less);
+        } else if (x > ptr->data) {
+            ptr->more = delete_(x, ptr->more);
+        } else {
+            Node* L = ptr->less;
+            Node* R = ptr->more;
+
+            if (R == nullptr) {
+                return L;
+            }
+
+            Node* min = R;
+            while (min->less != nullptr) {
+                min = min->less;
+            }
+            
+            min->more = exclude_min(R);
+            min->less = L;
+
+            ptr->isolate();
+            delete ptr;
+
+            min->updateHeight();
+            return balance(min);
+        }
+
         ptr->updateHeight();
         return balance(ptr);
     }
@@ -209,6 +297,31 @@ int main(int, char**) {
             std::cin >> x;
 
             std::cout << (tree.search(x) ? "true" : "false") << "\n";
+        } else if (command == "next") {
+            int x;
+            std::cin >> x;
+
+            Node* next = tree.next(x);
+            if (next == nullptr) {
+                std::cout << "none\n";
+            } else {
+                std::cout << next->data << "\n";
+            }
+        } else if (command == "prev") {
+            int x;
+            std::cin >> x;
+
+            Node* prev = tree.prev(x);
+            if (prev == nullptr) {
+                std::cout << "none\n";
+            } else {
+                std::cout << prev->data << "\n";
+            }
+        } else if (command == "delete") {
+            int x;
+            std::cin >> x;
+
+            tree.Delete(x);
         } else if (command == "output") {
             tree.output();
         }
@@ -218,7 +331,19 @@ int main(int, char**) {
 
     /*
 insert 1
+insert 2
 insert 3
+insert 4
+insert 5
 insert 6
+insert 7
+insert 8
+insert 9
+insert 10
+insert 11
+insert 12
+insert 13
+insert 14
+insert 15
     */
 }
